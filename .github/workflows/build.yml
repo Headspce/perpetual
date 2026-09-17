@@ -1,0 +1,59 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.10.2
+
+      - name: Build release APK
+        run: gradle :app:assembleRelease --stacktrace
+
+      - name: Sign APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > /tmp/perpetual.p12
+          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          BT="$ANDROID_HOME/build-tools/34.0.0"
+          "$BT/apksigner" sign --ks /tmp/perpetual.p12 \
+            --ks-pass:env KEYSTORE_PASSWORD --key-pass:env KEY_PASSWORD \
+            --ks-key-alias "$KEY_ALIAS" --out perpetual.apk "$APK"
+          "$BT/apksigner" verify --print-certs perpetual.apk | head -5
+          rm /tmp/perpetual.p12
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: perpetual-apk
+          path: perpetual.apk
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: Perpetual v1.0.0
+          files: perpetual.apk

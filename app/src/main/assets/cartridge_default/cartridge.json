@@ -1,0 +1,64 @@
+{
+  "cartridge": "wind-waker-items",
+  "version": 1,
+  "title": "ITEMS",
+  "tabs": [
+    "ITEMS",
+    "MAP",
+    "BOTTLES"
+  ],
+  "activeTab": 0,
+  "barLabel": "LOADING",
+  "progress": 0.99,
+  "backgroundColor": "#d9c895",
+  "backgroundImage": "bg.png",
+  "hint": "CARTRIDGE 01 - WIND WAKER",
+  "grid": {
+    "columns": 4,
+    "items": [
+      {
+        "icon": "sword.png",
+        "label": "SWORD"
+      },
+      {
+        "icon": "shield.png",
+        "label": "SHIELD"
+      },
+      {
+        "icon": "bottle.png",
+        "label": "BOTTLE"
+      },
+      {
+        "icon": "bow.png",
+        "label": "BOW"
+      },
+      {
+        "icon": "key.png",
+        "label": "KEY"
+      },
+      {
+        "icon": "map.png",
+        "label": "MAP"
+      },
+      {
+        "icon": "heart.png",
+        "label": "HEART"
+      },
+      {
+        "icon": "bomb.png",
+        "label": "BOMB"
+      }
+    ]
+  },
+  "files": {
+    "bg.png": "1szfEfEFDakNnPLqloRQa4SDtTrPWbXCm",
+    "sword.png": "1qQeyk66lJyCE3efo5FsTuI-slOMBTN7P",
+    "shield.png": "1ZpXL7tUm6BipJ0yOcRvUqcxgWkR19lkF",
+    "bottle.png": "1-fgsNz9EpabFMXDAj1MGdcFWg4KP5sd4",
+    "bow.png": "1ixinRNuuq7KkNVmv4Bt19qas--sRjdH-",
+    "key.png": "165TXhm94iNanJvCDtyoKQ9Kj4SFOVYWO",
+    "map.png": "13Tw5fBZPfBN7mgQ8cGAJJlvkUkz--ep5",
+    "heart.png": "1fQrdlu7CzfqvHPl2qpt4L0w_bqcwumv1",
+    "bomb.png": "1azdwkQ493sbOCoTlc7zjCjXEbP1t4Pqq"
+  }
+}
