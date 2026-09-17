@@ -19,9 +19,9 @@ import java.io.File
  *
  * The bar itself is drawn by [drawPixelBar], whose geometry and style
  * constants are frozen — cartridges may only change its label text,
- * target fill fraction and accent color, never its graphics. The fill
- * itself is genuinely animated: it climbs from 0 to the cartridge's
- * target, holds, drains, and loops forever.
+ * live progress value and accent color, never its graphics. The fill
+ * is genuinely live: it eases toward the manifest's progress value,
+ * which Wren updates as real work completes.
  */
 class StageView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -31,7 +31,10 @@ class StageView @JvmOverloads constructor(
         set(value) {
             field = value
             loadBitmaps()
-            animStart = SystemClock.uptimeMillis()
+            // Don't reset the bar — ease from wherever it is toward the
+            // new live progress target. Wren updates progress in the
+            // manifest as real work completes.
+            targetProgress = value?.progress ?: 0f
             invalidate()
         }
 
@@ -47,27 +50,23 @@ class StageView @JvmOverloads constructor(
     private val textPaint = Paint().apply { isAntiAlias = false }
     private val fillPaint = Paint().apply { isAntiAlias = false }
 
-    // ---- Genuine bar animation: the fill fraction is time-driven, looping
-    // climb (3s, ease-out) -> hold at the cartridge's target (1.5s) ->
-    // quick drain (0.5s) -> repeat. The bar's graphics stay frozen; only
-    // the live fill value moves.
+    // ---- Live progress: the bar eases toward the manifest's progress
+    // value, which Wren updates as real work completes. No fake loop —
+    // when the target moves, the fill glides to it (exponential ease,
+    // ~1.5s to settle). The bar's graphics stay frozen; only the live
+    // fill value moves.
     private var animProgress = 0f
-    private var animStart = 0L
+    private var targetProgress = 0f
     private val animStep = object : Runnable {
         override fun run() {
-            val c = cartridge ?: return
-            val t = (SystemClock.uptimeMillis() - animStart) / 1000f
-            val climb = 3.0f
-            val hold = 1.5f
-            val drain = 0.5f
-            val tt = t % (climb + hold + drain)
-            animProgress = when {
-                tt < climb -> {
-                    val k = tt / climb
-                    (1f - (1f - k) * (1f - k) * (1f - k)) * c.progress
-                }
-                tt < climb + hold -> c.progress
-                else -> c.progress * (1f - (tt - climb - hold) / drain)
+            val c = cartridge
+            if (c != null) targetProgress = c.progress.coerceIn(0f, 1f)
+            // Exponential ease toward target: fast at first, gentle landing.
+            val diff = targetProgress - animProgress
+            animProgress = if (kotlin.math.abs(diff) < 0.001f) {
+                targetProgress
+            } else {
+                (animProgress + diff * 0.12f).coerceIn(0f, 1f)
             }
             invalidate()
             postDelayed(this, 50) // 20 fps
@@ -76,7 +75,6 @@ class StageView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        animStart = SystemClock.uptimeMillis()
         removeCallbacks(animStep)
         post(animStep)
     }
@@ -254,6 +252,14 @@ class StageView @JvmOverloads constructor(
         // percent below
         val pct = "${(progress * 100 + 0.5f).toInt()}%"
         drawCenteredText(canvas, pct, x + w / 2, top + h + 6.5f * u, 6 * u, tf, Color.BLACK)
+        // live progress label (e.g. "Screenshot 2 of 3") below the percent
+        val c2 = cartridge
+        if (c2 != null && c2.progressLabel.isNotEmpty()) {
+            drawCenteredText(
+                canvas, c2.progressLabel, x + w / 2, top + h + 12.5f * u,
+                3.4f * u, tf, Color.argb(230, 40, 40, 40)
+            )
+        }
     }
 
     // ------------------------------------------------------------------
