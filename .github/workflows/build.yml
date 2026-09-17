@@ -59,9 +59,13 @@ jobs:
           name: perpetual-apk
           path: perpetual.apk
 
+      - name: Read app version
+        id: ver
+        run: echo "version=$(grep 'versionName =' app/build.gradle.kts | sed 's/.*\"\(.*\)\"/\1/')" >> "$GITHUB_OUTPUT"
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: Perpetual v1.0.0
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: Perpetual v${{ steps.ver.outputs.version }}
           files: perpetual.apk

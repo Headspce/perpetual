@@ -8,7 +8,9 @@ rebuilding the app.
 
 - The app is a single fullscreen `StageView`. The progress bar is drawn by
   `drawPixelBar()` with **frozen geometry and style** — cartridges may only
-  change its label text, fill fraction and accent color.
+  change its label text, target fill fraction and accent color. The fill
+  itself is genuinely animated: it climbs 0→target over ~3s (ease-out),
+  holds ~1.5s, drains, and loops forever at 20fps.
 - On launch, on every resume, and every 60 seconds, the app fetches
   `cartridge.json` from the shared Google Drive folder (`Wren run/perpetual`)
   via a direct download link baked into `BuildConfig.MANIFEST_URL`.

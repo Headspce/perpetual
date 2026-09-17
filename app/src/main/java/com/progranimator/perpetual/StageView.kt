@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.View
 import java.io.File
@@ -18,14 +19,21 @@ import java.io.File
  *
  * The bar itself is drawn by [drawPixelBar], whose geometry and style
  * constants are frozen — cartridges may only change its label text,
- * fill fraction and accent color, never its graphics.
+ * target fill fraction and accent color, never its graphics. The fill
+ * itself is genuinely animated: it climbs from 0 to the cartridge's
+ * target, holds, drains, and loops forever.
  */
 class StageView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
     var cartridge: Cartridge? = null
-        set(value) { field = value; loadBitmaps(); invalidate() }
+        set(value) {
+            field = value
+            loadBitmaps()
+            animStart = SystemClock.uptimeMillis()
+            invalidate()
+        }
 
     var pixelFont: Typeface? = null
         set(value) { field = value; invalidate() }
@@ -38,6 +46,45 @@ class StageView @JvmOverloads constructor(
     private val crisp = Paint().apply { isFilterBitmap = false }
     private val textPaint = Paint().apply { isAntiAlias = false }
     private val fillPaint = Paint().apply { isAntiAlias = false }
+
+    // ---- Genuine bar animation: the fill fraction is time-driven, looping
+    // climb (3s, ease-out) -> hold at the cartridge's target (1.5s) ->
+    // quick drain (0.5s) -> repeat. The bar's graphics stay frozen; only
+    // the live fill value moves.
+    private var animProgress = 0f
+    private var animStart = 0L
+    private val animStep = object : Runnable {
+        override fun run() {
+            val c = cartridge ?: return
+            val t = (SystemClock.uptimeMillis() - animStart) / 1000f
+            val climb = 3.0f
+            val hold = 1.5f
+            val drain = 0.5f
+            val tt = t % (climb + hold + drain)
+            animProgress = when {
+                tt < climb -> {
+                    val k = tt / climb
+                    (1f - (1f - k) * (1f - k) * (1f - k)) * c.progress
+                }
+                tt < climb + hold -> c.progress
+                else -> c.progress * (1f - (tt - climb - hold) / drain)
+            }
+            invalidate()
+            postDelayed(this, 50) // 20 fps
+        }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        animStart = SystemClock.uptimeMillis()
+        removeCallbacks(animStep)
+        post(animStep)
+    }
+
+    override fun onDetachedFromWindow() {
+        removeCallbacks(animStep)
+        super.onDetachedFromWindow()
+    }
 
     private fun loadBitmaps() {
         icons.clear()
@@ -151,7 +198,7 @@ class StageView @JvmOverloads constructor(
         val barH = 11 * u
         drawPixelBar(
             canvas, (w - barW) / 2, h * 0.68f, barW, barH,
-            c.barLabel, c.progress, c.accent, tf, u
+            c.barLabel, animProgress, c.accent, tf, u
         )
 
         // ---- hint ----

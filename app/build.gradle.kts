@@ -11,8 +11,8 @@ android {
         applicationId = "com.progranimator.perpetual"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
         // Google Drive file ID of cartridge.json in the shared "Wren run/perpetual"
         // folder. The file is updated in place, so this ID is stable.
         buildConfigField(
